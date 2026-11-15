@@ -1,0 +1,89 @@
+name: Gerar apps do Jarvis
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Abrir o zip
+        run: unzip -q jarvis-repo.zip -d src
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.7'
+
+      - name: Copiar a interface para dentro do app
+        run: |
+          mkdir -p src/android/app/src/main/assets
+          cp src/docs/index.html src/android/app/src/main/assets/index.html
+
+      - name: Compilar APK
+        working-directory: src/android
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Renomear APK
+        run: cp src/android/app/build/outputs/apk/debug/app-debug.apk Jarvis.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Jarvis-apk
+          path: Jarvis.apk
+
+      - name: Publicar em Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Jarvis celular v${{ github.run_number }}
+          files: Jarvis.apk
+
+  pc:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Abrir o zip
+        shell: pwsh
+        run: Expand-Archive -Path jarvis-repo.zip -DestinationPath src
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Copiar a interface para dentro do app
+        shell: bash
+        run: |
+          mkdir -p src/pc/app
+          cp src/docs/index.html src/pc/app/index.html
+
+      - name: Instalar e compilar
+        working-directory: src/pc
+        shell: bash
+        run: |
+          npm install
+          npm run dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Jarvis-PC
+          path: src/pc/dist/Jarvis-PC-Setup.exe
+
+      - name: Publicar em Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: pc-v${{ github.run_number }}
+          name: Jarvis PC v${{ github.run_number }}
+          files: src/pc/dist/Jarvis-PC-Setup.exe
