@@ -24,10 +24,12 @@ jobs:
           python - <<'PY'
           import struct, zlib, os
           data = open('jarvis-repo.zip', 'rb').read()
+          print('tamanho:', len(data), 'inicio:', data[:4])
+          SIG = bytes([0x50, 0x4b, 3, 4])
           i = 0
           n = 0
           while True:
-              i = data.find(b'PK\x03\x04', i)
+              i = data.find(SIG, i)
               if i < 0:
                   break
               flag, method = struct.unpack('<HH', data[i+6:i+10])
@@ -97,10 +99,12 @@ jobs:
           python - <<'PY'
           import struct, zlib, os
           data = open('jarvis-repo.zip', 'rb').read()
+          print('tamanho:', len(data), 'inicio:', data[:4])
+          SIG = bytes([0x50, 0x4b, 3, 4])
           i = 0
           n = 0
           while True:
-              i = data.find(b'PK\x03\x04', i)
+              i = data.find(SIG, i)
               if i < 0:
                   break
               flag, method = struct.unpack('<HH', data[i+6:i+10])
