@@ -14,8 +14,40 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Abrir o zip
-        run: unzip -q jarvis-repo.zip -d src
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Abrir o zip (com conserto automatico)
+        shell: bash
+        run: |
+          python - <<'PY'
+          import struct, zlib, os
+          data = open('jarvis-repo.zip', 'rb').read()
+          i = 0
+          n = 0
+          while True:
+              i = data.find(b'PK\x03\x04', i)
+              if i < 0:
+                  break
+              flag, method = struct.unpack('<HH', data[i+6:i+10])
+              csize, usize, nlen, elen = struct.unpack('<IIHH', data[i+18:i+30])
+              name = data[i+30:i+30+nlen].decode('utf-8', 'replace')
+              start = i + 30 + nlen + elen
+              raw = data[start:start+csize]
+              i = start + csize
+              if name.endswith('/'):
+                  continue
+              out = os.path.join('src', name)
+              os.makedirs(os.path.dirname(out) or '.', exist_ok=True)
+              body = zlib.decompress(raw, -15) if method == 8 else raw
+              open(out, 'wb').write(body)
+              n += 1
+          print('arquivos extraidos:', n)
+          PY
+          test -f src/docs/index.html
+          test -f src/android/app/build.gradle.kts
+          test -f src/pc/package.json
 
       - uses: actions/setup-java@v4
         with:
@@ -55,9 +87,40 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Abrir o zip
-        shell: pwsh
-        run: Expand-Archive -Path jarvis-repo.zip -DestinationPath src
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Abrir o zip (com conserto automatico)
+        shell: bash
+        run: |
+          python - <<'PY'
+          import struct, zlib, os
+          data = open('jarvis-repo.zip', 'rb').read()
+          i = 0
+          n = 0
+          while True:
+              i = data.find(b'PK\x03\x04', i)
+              if i < 0:
+                  break
+              flag, method = struct.unpack('<HH', data[i+6:i+10])
+              csize, usize, nlen, elen = struct.unpack('<IIHH', data[i+18:i+30])
+              name = data[i+30:i+30+nlen].decode('utf-8', 'replace')
+              start = i + 30 + nlen + elen
+              raw = data[start:start+csize]
+              i = start + csize
+              if name.endswith('/'):
+                  continue
+              out = os.path.join('src', name)
+              os.makedirs(os.path.dirname(out) or '.', exist_ok=True)
+              body = zlib.decompress(raw, -15) if method == 8 else raw
+              open(out, 'wb').write(body)
+              n += 1
+          print('arquivos extraidos:', n)
+          PY
+          test -f src/docs/index.html
+          test -f src/android/app/build.gradle.kts
+          test -f src/pc/package.json
 
       - uses: actions/setup-node@v4
         with:
